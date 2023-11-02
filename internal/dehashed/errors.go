@@ -5,6 +5,10 @@ type DehashError struct {
 	Code    int
 }
 
+type DehashResponseError struct {
+	HttpResponse int `json:"HTTP Response Code"`
+}
+
 func (de *DehashError) Error() string {
 	return de.Message
 }

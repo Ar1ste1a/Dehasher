@@ -1,28 +1,110 @@
 package dehashed
 
-import "net/http"
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+)
 
 type DehashClient struct {
-	key     string
-	email   string
-	results []DehashResult
-	client  *http.Client
+	key      string
+	email    string
+	results  []DehashResult
+	client   *http.Client
+	query    string
+	params   string
+	printBal bool
+	total    int
+	balance  int
 }
 
-func NewDehashClient(key, email string) *DehashClient {
-	return &DehashClient{key: key, email: email, results: make([]DehashResult, 0), client: &http.Client{}}
+var baseUrl = "https://api.dehashed.com/search"
+
+func NewDehashClient(key, email string, printBal bool) *DehashClient {
+	return &DehashClient{key: key, email: email, results: make([]DehashResult, 0), client: &http.Client{}, printBal: printBal}
 }
 
-func (dc *DehashClient) GetKey() string {
+func (dc *DehashClient) getKey() string {
 	return dc.key
 }
 
-func (dc *DehashClient) GetEmail() string {
+func (dc *DehashClient) getEmail() string {
 	return dc.email
 }
 
-func (dc *DehashClient) GetResults() string {
-	return dc.key
+func (dc *DehashClient) GetResults() []DehashResult {
+	return dc.results
+}
+
+func (dc *DehashClient) buildQuery(params map[string]string) {
+	urlParams := url.Values{}
+	urlString := baseUrl
+
+	if len(params) > 0 {
+		urlString += "?query="
+
+		for k, v := range params {
+			if len(v) > 0 {
+				urlParams.Add(k, v)
+			}
+		}
+	}
+
+	tmp, _ := url.QueryUnescape(urlParams.Encode())
+	tmp2 := strings.Replace(tmp, "=", ":", -1)
+	//println(tmp2)
+	//dc.params = strings.Replace(urlParams.Encode(), "=", ":", -1)
+	dc.params = tmp2
+	urlString += dc.params
+	dc.query = urlString
+}
+
+func (dc *DehashClient) setResults(results int) {
+	dc.query = fmt.Sprintf("%s?query=%s&size=%d", baseUrl, dc.params, results)
+}
+
+func (dc *DehashClient) setPage(page int) {
+	dc.query = fmt.Sprintf("%s&page=%d", dc.query, page)
+}
+
+func (dc *DehashClient) Do() int {
+	fmt.Printf("\n\t[*] Performing Request...")
+	req, err := http.NewRequest("GET", dc.query, nil)
+	if err != nil {
+		fmt.Printf("[!] Error constructing request: %v", err)
+		os.Exit(-1)
+	}
+
+	dc.setAuth(req)
+	req.Header.Add("Accept", "application/json")
+	resp, err := dc.client.Do(req)
+	if err != nil {
+		fmt.Printf("[!] Error performing request: %s\n%v", dc.query, err)
+		os.Exit(-1)
+	}
+
+	if resp.StatusCode != 200 {
+		dhErr := GetDehashedError(resp.StatusCode)
+		fmt.Println()
+		log.Fatal(dhErr.Error())
+	}
+
+	entries, balance, total := NewDehashResults(resp.Body)
+	dc.results = append(dc.results, entries...)
+	dc.balance = balance
+	dc.total += total
+	if dc.printBal {
+		fmt.Printf("\n\t[*] Balance Remaining: %d", balance)
+	}
+	fmt.Printf("\n\t[*] Retrieved %d Records", total)
+	return total
+}
+
+func (dc *DehashClient) setAuth(r *http.Request) {
+	r.SetBasicAuth(dc.email, dc.key)
 }
 
 /*
