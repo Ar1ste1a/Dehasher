@@ -1,7 +1,7 @@
 # Dehasher
 ## A cli tool built for interaction with the Dehash API
 
-<img src="https://img.wanman.io/fUSu0/tIFUJOMu64.png/raw" alt="Ar1ste1a" title="Ar1ste1a Offensive Security">
+<img src="https://img.wanman.io/fUSu0/SaCUyEMe87.png/raw" alt="Ar1ste1a" title="Ar1ste1a Offensive Security">
 
 # Features
 - Output Format Control
