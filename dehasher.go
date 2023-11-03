@@ -31,18 +31,11 @@ func getParser() *argparse.Argparse {
 	parser.AddArg("-J", "--output-json", "Output to JSON file", "bool", "true", false)
 	parser.AddArg("-Y", "--output-yaml", "Output to YAML file", "bool", "false", false)
 	parser.AddArg("-x", "--output-xml", "Output to XML file", "bool", "false", false)
-	parser.AddArg("-A", "--query-all-fields", "Return All Fields", "bool", "false", false)
-	parser.AddArg("-u", "--query-username", "Return Usernames", "bool", "false", false)
 	parser.AddArg("-U", "--username-query", "Username Query", "string", "", false)
-	parser.AddArg("-e", "--query-email", "Return Emails", "bool", "false", false)
 	parser.AddArg("-E", "--email-query", "Email Query", "string", "", false)
-	parser.AddArg("-i", "--query-ip-address", "Return IP Addresses", "bool", "false", false)
 	parser.AddArg("-I", "--ip-address-query", "IP Address Query", "string", "", false)
-	parser.AddArg("-p", "--query-password", "Return Passwords", "bool", "false", false)
 	parser.AddArg("-P", "--password-query", "Password Query", "string", "", false)
-	parser.AddArg("-q", "--query-hashed-password", "Return Hashed Passwords", "bool", "false", false)
 	parser.AddArg("-Q", "--hashed-password-query", "Hashed Password Query", "string", "", false)
-	parser.AddArg("-n", "--query-name", "Return Names", "bool", "false", false)
 	parser.AddArg("-N", "--name-query", "Name Query", "string", "", false)
 	parser.AddArg("-C", "--creds-only", "Return Credentials Only", "bool", "false", false)
 
@@ -52,53 +45,14 @@ func getParser() *argparse.Argparse {
 func startDehash(p *argparse.Argparse) {
 	var (
 		eUsername, eEmail, eIP, ePassword, eHashedPassword, eName string
-		qUsername                                                 = false
-		qEmail                                                    = false
-		qIP                                                       = false
-		qPassword                                                 = false
-		qHashedPassword                                           = false
-		qName                                                     = false
 	)
 
-	if p.Get("query-all-fields").(bool) {
-		qUsername = true
-		qEmail = true
-		qIP = true
-		qPassword = true
-		qHashedPassword = true
-		qName = true
-	} else {
-		qUsername = p.Get("query-username").(bool)
-		qEmail = p.Get("query-email").(bool)
-		qIP = p.Get("query-ip-address").(bool)
-		qPassword = p.Get("query-password").(bool)
-		qHashedPassword = p.Get("query-hashed-password").(bool)
-		qName = p.Get("query-name").(bool)
-	}
-
-	if qUsername {
-		eUsername = p.Get("username-query").(string)
-	}
-
-	if qEmail {
-		eEmail = p.Get("email-query").(string)
-	}
-
-	if qIP {
-		eIP = p.Get("ip-address-query").(string)
-	}
-
-	if qPassword {
-		ePassword = p.Get("password-query").(string)
-	}
-
-	if qHashedPassword {
-		eHashedPassword = p.Get("hashed-password-query").(string)
-	}
-
-	if qName {
-		eName = p.Get("name-query").(string)
-	}
+	eUsername = p.Get("username-query").(string)
+	eEmail = p.Get("email-query").(string)
+	eIP = p.Get("ip-address-query").(string)
+	ePassword = p.Get("password-query").(string)
+	eHashedPassword = p.Get("hashed-password-query").(string)
+	eName = p.Get("name-query").(string)
 
 	exactMatch := strings.ToLower(p.Get("exact-match").(string))
 	if len(exactMatch) > 0 {
@@ -195,12 +149,6 @@ func startDehash(p *argparse.Argparse) {
 	}
 
 	dehash := dehashed.NewDehasher(
-		qUsername,
-		qEmail,
-		qIP,
-		qPassword,
-		qHashedPassword,
-		qName,
 		eUsername,
 		eEmail,
 		eIP,

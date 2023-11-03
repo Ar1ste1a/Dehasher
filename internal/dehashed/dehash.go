@@ -12,47 +12,35 @@ import (
 )
 
 type Dehasher struct {
-	queryUsername       bool
-	queryEmail          bool
-	queryIpAddress      bool
-	queryPassword       bool
-	queryHashedPassword bool
-	queryName           bool
-	username            string
-	email               string
-	ipAddress           string
-	password            string
-	hashedPassword      string
-	name                string
-	query               string
-	page                int
-	records             int
-	requests            int
-	params              map[string]string
-	client              *DehashClient
-	fileType            string
-	fileName            string
-	credsOnly           bool
+	username       string
+	email          string
+	ipAddress      string
+	password       string
+	hashedPassword string
+	name           string
+	query          string
+	page           int
+	records        int
+	requests       int
+	params         map[string]string
+	client         *DehashClient
+	fileType       string
+	fileName       string
+	credsOnly      bool
 }
 
-func NewDehasher(qUsername, qEmail, qIP, qPass, qHPass, qName bool, eUsername, eEmail, eIP, ePass, eHPass, eName string, maxRecords, maxRequests int, credsOnly bool) *Dehasher {
+func NewDehasher(eUsername, eEmail, eIP, ePass, eHPass, eName string, maxRecords, maxRequests int, credsOnly bool) *Dehasher {
 	dh := &Dehasher{
-		queryUsername:       qUsername,
-		queryEmail:          qEmail,
-		queryIpAddress:      qIP,
-		queryPassword:       qPass,
-		queryHashedPassword: qHPass,
-		queryName:           qName,
-		username:            eUsername,
-		email:               eEmail,
-		ipAddress:           eIP,
-		password:            ePass,
-		hashedPassword:      eHPass,
-		name:                eName,
-		records:             maxRecords,
-		requests:            maxRequests,
-		page:                1,
-		credsOnly:           credsOnly,
+		username:       eUsername,
+		email:          eEmail,
+		ipAddress:      eIP,
+		password:       ePass,
+		hashedPassword: eHPass,
+		name:           eName,
+		records:        maxRecords,
+		requests:       maxRequests,
+		page:           1,
+		credsOnly:      credsOnly,
 	}
 	dh.escapeReservedCharacters()
 	dh.constructMap()
@@ -146,22 +134,22 @@ func (dh *Dehasher) buildQuery() {
 func (dh *Dehasher) constructMap() {
 	urlParams := map[string]string{}
 
-	if dh.queryUsername {
+	if len(dh.username) > 0 {
 		urlParams["username"] = dh.username
 	}
-	if dh.queryEmail {
+	if len(dh.email) > 0 {
 		urlParams["email"] = dh.email
 	}
-	if dh.queryIpAddress {
+	if len(dh.ipAddress) > 0 {
 		urlParams["ip_address"] = dh.ipAddress
 	}
-	if dh.queryHashedPassword {
+	if len(dh.hashedPassword) > 0 {
 		urlParams["hashed_password"] = dh.hashedPassword
 	}
-	if dh.queryPassword {
+	if len(dh.password) > 0 {
 		urlParams["password"] = dh.password
 	}
-	if dh.queryName {
+	if len(dh.name) > 0 {
 		urlParams["name"] = dh.name
 	}
 
