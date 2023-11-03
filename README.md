@@ -13,8 +13,9 @@
 - Credential Dumping
 - Intelligent Token Usage
 # Options
+
 ```bash-session
-usage: Dehasher [-h --help] {-k --key}  {-a --authorized-email} [-h --help]  [-m --max-records]  [-r --max-requests]  [-B --print-balance]  [-X --exact-match]  [-R --regex-match]  [-t --list-tokens]  [-o --output-file-name]  [-T --output-txt]  [-J --output-json]  [-Y --output-yaml]  [-x --output-xml]  [-A --query-all-fields]  [-u --query-username]  [-U --username-query]  [-e --query-email]  [-E --email-query]  [-i --query-ip-address]  [-I --ip-address-query]  [-p --query-password]  [-P --password-query]  [-q --query-hashed-password]  [-Q --hashed-password-query]  [-n --query-name]  [-N --name-query]  [-C --creds-only]
+usage: Dehasher [-h --help] {-k --key}  {-a --authorized-email} [-h --help]  [-m --max-records]  [-r --max-requests]  [-B --print-balance]  [-X --exact-match]  [-R --regex-match]  [-t --list-tokens]  [-o --output-file-name]  [-T --output-txt]  [-J --output-json]  [-Y --output-yaml]  [-x --output-xml]  [-U --username-query]  [-E --email-query]  [-I --ip-address-query]  [-P --password-query]  [-Q --hashed-password-query]  [-N --name-query]  [-C --creds-only]
 
 Dehashed Tool
 
@@ -31,18 +32,11 @@ options:
    -J --output-json                                           Output to JSON file
    -Y --output-yaml                                           Output to YAML file
    -x --output-xml                                             Output to XML file
-   -A --query-all-fields                                        Return All Fields
-   -u --query-username                                           Return Usernames
    -U --username-query                                             Username Query
-   -e --query-email                                                 Return Emails
    -E --email-query                                                   Email Query
-   -i --query-ip-address                                      Return IP Addresses
    -I --ip-address-query                                         IP Address Query
-   -p --query-password                                           Return Passwords
    -P --password-query                                             Password Query
-   -q --query-hashed-password                             Return Hashed Passwords
    -Q --hashed-password-query                               Hashed Password Query
-   -n --query-name                                                   Return Names
    -N --name-query                                                     Name Query
    -C --creds-only                                        Return Credentials Only
    -k --key                                                               API Key
@@ -50,6 +44,19 @@ options:
 
 
 v1.0
+```
+
+# Sample Run
+```bash-session
+-k ddq<redacted> -a ar1ste1a@<redacted> -E @example.com -C -o example_creds
+Making 3 Requests for 10000 Records (30000 Total)
+        [*] Performing Request...
+        [*] Retrieved 60 Records
+[-] Not Enough Entries, ending queries
+[+] Discovered 60 Records
+        [*] Writing entries file: example_creds.json
+                [*] Success
+
 ```
 
 # Getting Started
