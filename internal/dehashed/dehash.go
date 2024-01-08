@@ -263,7 +263,7 @@ type Creds struct {
 }
 
 func (c Creds) ToString() string {
-	return fmt.Sprintf("%s%s%s", c.Username, "%", c.Password)
+	return fmt.Sprintf("%s%s%s\n", c.Username, "%", c.Password)
 }
 
 func (dh *Dehasher) extractCreds(results []DehashResult) []Creds {
