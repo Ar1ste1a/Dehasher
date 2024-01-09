@@ -210,7 +210,7 @@ func (dh *Dehasher) writeCredsToFile(creds []Creds) error {
 	case "txt":
 		var outStrings []string
 		for _, c := range creds {
-			outStrings = append(outStrings, c.ToString())
+			outStrings = append(outStrings, c.ToString()+"\n")
 		}
 		data = []byte(strings.Join(outStrings, ""))
 	default:
@@ -263,7 +263,7 @@ type Creds struct {
 }
 
 func (c Creds) ToString() string {
-	return fmt.Sprintf("%s%s%s\n", c.Username, "%", c.Password)
+	return fmt.Sprintf("%s%s%s", c.Username, "%", c.Password)
 }
 
 func (dh *Dehasher) extractCreds(results []DehashResult) []Creds {
