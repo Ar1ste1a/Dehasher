@@ -103,23 +103,33 @@ func (dh *Dehasher) setQueries() {
 	}
 
 	dh.requests = numQueries
-	fmt.Printf("Making %d Requests for %d Records (%d Total)", dh.requests, dh.records, (dh.requests * dh.records))
+	fmt.Printf("Making %d Requests for %d Records (%d Total)", dh.requests, dh.records, dh.requests*dh.records)
 }
 
 func (dh *Dehasher) Start() {
 	dh.client.buildQuery(dh.params)
 	page := 1
+	offset := 0
+	foundNum := 0
 	for i := 0; i < dh.requests; i++ {
 		dh.client.setResults(dh.records)
 		dh.client.setPage(page)
 		found := dh.client.Do()
 
-		if found < dh.records {
+		if found-offset < dh.records {
+			fmt.Printf("\n\t\t[+] Retrieved %d Records", found-offset)
 			fmt.Printf("\n[-] Not Enough Entries, ending queries")
-			fmt.Printf("\n[+] Discovered %d Records", found)
 			break
+		} else {
+			if found-offset > dh.records {
+				foundNum = dh.records
+			} else {
+				foundNum = found - offset
+			}
+			fmt.Printf("\n\t\t[*] Retrieved %d Records", foundNum)
+			offset += dh.records
+			page += 1
 		}
-		page += 1
 	}
 
 	dh.parseResults()
@@ -168,7 +178,7 @@ func (dh *Dehasher) parseResults() {
 	results := dh.client.GetResults()
 
 	if len(results) > 0 {
-		fmt.Printf("\n\t[*] Writing entries file: %s.%s", dh.fileName, dh.fileType)
+		fmt.Printf("\n\t[*] Writing entries to file: %s.%s", dh.fileName, dh.fileType)
 		if !dh.credsOnly {
 			err := dh.writeToFile(results)
 			if err != nil {

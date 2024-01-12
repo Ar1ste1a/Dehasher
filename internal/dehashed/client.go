@@ -97,9 +97,8 @@ func (dc *DehashClient) Do() int {
 	dc.balance = balance
 	dc.total += total
 	if dc.printBal {
-		fmt.Printf("\n\t[*] Balance Remaining: %d", balance)
+		fmt.Printf("\n\t\t[*] Balance Remaining: %d", balance)
 	}
-	fmt.Printf("\n\t[*] Retrieved %d Records", total)
 	return total
 }
 
