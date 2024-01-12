@@ -15,21 +15,6 @@ type DehashResponse struct {
 	TotalResults int            `json:"total"`
 }
 
-//type DehashResult struct {
-//	Id             string `json:"id"`
-//	Email          string `json:"email"`
-//	IpAddress      string `json:"ip_address"`
-//	Username       string `json:"username"`
-//	Password       string `json:"password"`
-//	HashedPassword string `json:"hashed_password"`
-//	HashType       string `json:"hash_type"`
-//	Name           string `json:"name"`
-//	Vin            string `json:"vin"`
-//	Address        string `json:"address"`
-//	Phone          string `json:"phone"`
-//	DatabaseName   string `json:"database_name"`
-//}
-
 type DehashResult struct {
 	Id             string `json:"id" xml:"id" yaml:"id"`
 	Email          string `json:"email" xml:"email" yaml:"email"`
