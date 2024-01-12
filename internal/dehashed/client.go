@@ -55,8 +55,6 @@ func (dc *DehashClient) buildQuery(params map[string]string) {
 
 	tmp, _ := url.QueryUnescape(urlParams.Encode())
 	tmp2 := strings.Replace(tmp, "=", ":", -1)
-	//println(tmp2)
-	//dc.params = strings.Replace(urlParams.Encode(), "=", ":", -1)
 	dc.params = tmp2
 	urlString += dc.params
 	dc.query = urlString
