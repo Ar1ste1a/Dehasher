@@ -154,18 +154,29 @@ func (dh *Dehasher) buildRequest() {
 // parseResults parses the results and writes them to a file
 func (dh *Dehasher) parseResults() {
 	var data []byte
-	results := dh.client.GetResults()
 
-	defer func() {
-		zap.L().Info("storing_results")
-		err := sqlite.StoreResults(results)
-		if err != nil {
-			zap.L().Error("store_results",
-				zap.String("message", "failed to store results"),
-				zap.Error(err),
-			)
-		}
-	}()
+	zap.L().Info("extracting_credentials")
+	results := dh.client.GetResults()
+	creds := results.ExtractCredentials()
+	fmt.Printf("\n\t[*] Discovered %d Credentials", len(creds))
+	err := sqlite.StoreCreds(creds)
+	if err != nil {
+		zap.L().Error("store_creds",
+			zap.String("message", "failed to store creds"),
+			zap.Error(err),
+		)
+	}
+	zap.L().Info("creds_stored", zap.Int("count", len(creds)))
+
+	zap.L().Info("storing_results")
+	err = sqlite.StoreResults(results)
+	if err != nil {
+		zap.L().Error("store_results",
+			zap.String("message", "failed to store results"),
+			zap.Error(err),
+		)
+	}
+	zap.L().Info("results_stored", zap.Int("count", len(results.Results)))
 
 	if len(results.Results) > 0 {
 		fmt.Printf("\n\t[*] Writing entries to file: %s.%s", dh.options.OutputFile, dh.options.OutputFormat.String())
@@ -178,7 +189,6 @@ func (dh *Dehasher) parseResults() {
 				os.Exit(0)
 			} else {
 				fmt.Println("\n\t\t[*] Success\n")
-				os.Exit(1)
 			}
 		} else {
 			creds := results.ExtractCredentials()
@@ -190,7 +200,6 @@ func (dh *Dehasher) parseResults() {
 				os.Exit(0)
 			} else {
 				fmt.Println("\n\t\t[*] Success\n")
-				os.Exit(1)
 			}
 		}
 	}

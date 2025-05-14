@@ -153,7 +153,9 @@ var dbQueryCmd = &cobra.Command{
 
 		// Check if at least one search parameter is provided
 		if options.Username == "" && options.Email == "" && options.IPAddress == "" &&
-			options.Password == "" && options.HashedPassword == "" && options.Name == "" {
+			options.Password == "" && options.HashedPassword == "" && options.Name == "" &&
+			options.Vin == "" && options.LicensePlate == "" && options.Address == "" &&
+			options.Phone == "" && options.Social == "" && options.CryptoCurrencyAddress == "" && options.Domain == "" {
 			fmt.Println("Error: At least one search parameter is required.")
 			cmd.Help()
 			return
@@ -198,12 +200,12 @@ var dbQueryCmd = &cobra.Command{
 			// Print each result
 			for _, result := range results {
 				fmt.Printf("%-20s %-30s %-15s %-20s %-20s %-20s\n",
-					truncate(result.Username, 20),
-					truncate(result.Email, 30),
-					truncate(result.IpAddress, 15),
-					truncate(result.Password, 20),
-					truncate(result.HashedPassword, 20),
-					truncate(result.Name, 20))
+					truncate(arrayToString(result.Username), 20),
+					truncate(arrayToString(result.Email), 30),
+					truncate(arrayToString(result.IpAddress), 15),
+					truncate(arrayToString(result.Password), 20),
+					truncate(arrayToString(result.HashedPassword), 20),
+					truncate(arrayToString(result.Name), 20))
 			}
 		default:
 			// Simple output
