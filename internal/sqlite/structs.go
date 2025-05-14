@@ -22,12 +22,16 @@ type DBOptions struct {
 	Domain                string
 	Limit                 int
 	ExactMatch            bool
+	NonEmptyFields        []string // Fields that should not be empty
+	DisplayFields         []string // Fields to display in output
 }
 
 func NewDBOptions() *DBOptions {
 	return &DBOptions{
-		Limit:      100, // Default limit
-		ExactMatch: false,
+		Limit:          100, // Default limit
+		ExactMatch:     false,
+		NonEmptyFields: []string{},
+		DisplayFields:  []string{},
 	}
 }
 

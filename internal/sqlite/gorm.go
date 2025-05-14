@@ -108,8 +108,8 @@ func StoreCreds(creds []Creds) error {
 		}
 
 		batch := creds[i:end]
-		// Use CreateInBatches with OnConflict clause to skip conflicts
-		err := db.CreateInBatches(&batch, batchSize).Error
+		// Use Clauses with OnConflict DoNothing to skip conflicts
+		err := db.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(&batch, batchSize).Error
 		if err != nil {
 			zap.L().Warn("Error storing some credentials", zap.Error(err))
 			lastErr = err

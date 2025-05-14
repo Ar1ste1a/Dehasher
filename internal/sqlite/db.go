@@ -100,6 +100,38 @@ func applyFilters(query *gorm.DB, options *DBOptions) *gorm.DB {
 		query = applyFilter("url", options.Domain)
 	}
 
+	// Apply non-empty field filters
+	for _, field := range options.NonEmptyFields {
+		switch field {
+		case "username":
+			query = query.Where("JSON_ARRAY_LENGTH(username) > 0")
+		case "email":
+			query = query.Where("JSON_ARRAY_LENGTH(email) > 0")
+		case "ip_address", "ipaddress", "ip":
+			query = query.Where("JSON_ARRAY_LENGTH(ip_address) > 0")
+		case "password":
+			query = query.Where("JSON_ARRAY_LENGTH(password) > 0")
+		case "hashed_password", "hash":
+			query = query.Where("JSON_ARRAY_LENGTH(hashed_password) > 0")
+		case "name":
+			query = query.Where("JSON_ARRAY_LENGTH(name) > 0")
+		case "vin":
+			query = query.Where("JSON_ARRAY_LENGTH(vin) > 0")
+		case "license_plate", "license":
+			query = query.Where("JSON_ARRAY_LENGTH(license_plate) > 0")
+		case "address":
+			query = query.Where("JSON_ARRAY_LENGTH(address) > 0")
+		case "phone":
+			query = query.Where("JSON_ARRAY_LENGTH(phone) > 0")
+		case "social":
+			query = query.Where("JSON_ARRAY_LENGTH(social) > 0")
+		case "cryptocurrency_address", "crypto":
+			query = query.Where("JSON_ARRAY_LENGTH(cryptocurrency_address) > 0")
+		case "url", "domain":
+			query = query.Where("JSON_ARRAY_LENGTH(url) > 0")
+		}
+	}
+
 	return query
 }
 

@@ -32,6 +32,8 @@ var (
 	limitResultsDB               int
 	exactMatchDBQuery            bool
 	outputFormatDB               string
+	nonEmptyFieldsDBQuery        string
+	displayFieldsDBQuery         string
 
 	// DB command
 	dbCmd = &cobra.Command{
@@ -66,6 +68,8 @@ func init() {
 	dbQueryCmd.Flags().IntVarP(&limitResultsDB, "limit", "l", 100, "Limit number of results")
 	dbQueryCmd.Flags().BoolVarP(&exactMatchDBQuery, "exact", "x", false, "Use exact matching instead of partial matching")
 	dbQueryCmd.Flags().StringVarP(&outputFormatDB, "format", "f", "table", "Output format (json, table, simple)")
+	dbQueryCmd.Flags().StringVar(&nonEmptyFieldsDBQuery, "non-empty", "", "Filter for non-empty fields (comma-separated list, e.g., 'password,email')")
+	dbQueryCmd.Flags().StringVar(&displayFieldsDBQuery, "display", "", "Fields to display in output (comma-separated list, e.g., 'username,email,password')")
 }
 
 // DB export command
@@ -86,9 +90,20 @@ var dbExportCmd = &cobra.Command{
 			ExactMatch:     exactMatchDBQuery,
 		}
 
+		// Parse non-empty fields if provided
+		if nonEmptyFieldsDBQuery != "" {
+			options.NonEmptyFields = strings.Split(nonEmptyFieldsDBQuery, ",")
+		}
+
+		// Parse display fields if provided
+		if displayFieldsDBQuery != "" {
+			options.DisplayFields = strings.Split(displayFieldsDBQuery, ",")
+		}
+
 		// Check if at least one search parameter is provided
 		if options.Username == "" && options.Email == "" && options.IPAddress == "" &&
-			options.Password == "" && options.HashedPassword == "" && options.Name == "" {
+			options.Password == "" && options.HashedPassword == "" && options.Name == "" &&
+			len(options.NonEmptyFields) == 0 {
 			fmt.Println("Error: At least one search parameter is required.")
 			cmd.Help()
 			return
@@ -151,11 +166,22 @@ var dbQueryCmd = &cobra.Command{
 			ExactMatch:            exactMatchDBQuery,
 		}
 
+		// Parse non-empty fields if provided
+		if nonEmptyFieldsDBQuery != "" {
+			options.NonEmptyFields = strings.Split(nonEmptyFieldsDBQuery, ",")
+		}
+
+		// Parse display fields if provided
+		if displayFieldsDBQuery != "" {
+			options.DisplayFields = strings.Split(displayFieldsDBQuery, ",")
+		}
+
 		// Check if at least one search parameter is provided
 		if options.Username == "" && options.Email == "" && options.IPAddress == "" &&
 			options.Password == "" && options.HashedPassword == "" && options.Name == "" &&
 			options.Vin == "" && options.LicensePlate == "" && options.Address == "" &&
-			options.Phone == "" && options.Social == "" && options.CryptoCurrencyAddress == "" && options.Domain == "" {
+			options.Phone == "" && options.Social == "" && options.CryptoCurrencyAddress == "" && options.Domain == "" &&
+			len(options.NonEmptyFields) == 0 {
 			fmt.Println("Error: At least one search parameter is required.")
 			cmd.Help()
 			return
@@ -193,30 +219,125 @@ var dbQueryCmd = &cobra.Command{
 			}
 			fmt.Println(string(data))
 		case "table":
+			// Determine which fields to display
+			type FieldInfo struct {
+				Name   string
+				Width  int
+				Getter func(result sqlite.Result) string
+			}
+
+			// Define all available fields
+			allFields := []FieldInfo{
+				{"Username", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.Username), 20) }},
+				{"Email", 30, func(r sqlite.Result) string { return truncate(arrayToString(r.Email), 30) }},
+				{"IP Address", 15, func(r sqlite.Result) string { return truncate(arrayToString(r.IpAddress), 15) }},
+				{"Password", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.Password), 20) }},
+				{"Hashed Password", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.HashedPassword), 20) }},
+				{"Name", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.Name), 20) }},
+				{"VIN", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.Vin), 20) }},
+				{"License Plate", 15, func(r sqlite.Result) string { return truncate(arrayToString(r.LicensePlate), 15) }},
+				{"Address", 30, func(r sqlite.Result) string { return truncate(arrayToString(r.Address), 30) }},
+				{"Phone", 15, func(r sqlite.Result) string { return truncate(arrayToString(r.Phone), 15) }},
+				{"Social", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.Social), 20) }},
+				{"Crypto Address", 20, func(r sqlite.Result) string { return truncate(arrayToString(r.CryptoCurrencyAddress), 20) }},
+				{"Domain/URL", 30, func(r sqlite.Result) string { return truncate(arrayToString(r.Url), 30) }},
+			}
+
+			// Select fields to display
+			var fieldsToDisplay []FieldInfo
+			if len(options.DisplayFields) > 0 {
+				// Use specified fields
+				for _, fieldName := range options.DisplayFields {
+					fieldName = strings.ToLower(strings.TrimSpace(fieldName))
+					for _, field := range allFields {
+						if strings.ToLower(field.Name) == fieldName ||
+							(fieldName == "ip" && strings.ToLower(field.Name) == "ip address") ||
+							(fieldName == "hash" && strings.ToLower(field.Name) == "hashed password") ||
+							(fieldName == "license" && strings.ToLower(field.Name) == "license plate") ||
+							(fieldName == "crypto" && strings.ToLower(field.Name) == "crypto address") ||
+							(fieldName == "url" && strings.ToLower(field.Name) == "domain/url") {
+							fieldsToDisplay = append(fieldsToDisplay, field)
+							break
+						}
+					}
+				}
+			} else {
+				// Default fields (first 6)
+				fieldsToDisplay = allFields[:6]
+			}
+
 			// Print table header
-			fmt.Printf("%-20s %-30s %-15s %-20s %-20s %-20s\n", "Username", "Email", "IP Address", "Password", "Hashed Password", "Name")
-			fmt.Println("----------------------------------------------------------------------------------------------------")
+			formatStr := ""
+			headerValues := []interface{}{}
+			for _, field := range fieldsToDisplay {
+				formatStr += "%-" + fmt.Sprintf("%d", field.Width) + "s "
+				headerValues = append(headerValues, field.Name)
+			}
+			fmt.Printf(formatStr+"\n", headerValues...)
+
+			// Print separator line
+			separator := ""
+			for _, field := range fieldsToDisplay {
+				separator += strings.Repeat("-", field.Width) + " "
+			}
+			fmt.Println(separator)
 
 			// Print each result
 			for _, result := range results {
-				fmt.Printf("%-20s %-30s %-15s %-20s %-20s %-20s\n",
-					truncate(arrayToString(result.Username), 20),
-					truncate(arrayToString(result.Email), 30),
-					truncate(arrayToString(result.IpAddress), 15),
-					truncate(arrayToString(result.Password), 20),
-					truncate(arrayToString(result.HashedPassword), 20),
-					truncate(arrayToString(result.Name), 20))
+				rowValues := []interface{}{}
+				for _, field := range fieldsToDisplay {
+					rowValues = append(rowValues, field.Getter(result))
+				}
+				fmt.Printf(formatStr+"\n", rowValues...)
 			}
 		default:
 			// Simple output
 			for i, result := range results {
 				fmt.Printf("Result %d:\n", i+1)
-				fmt.Printf("  Username: %s\n", result.Username)
-				fmt.Printf("  Email: %s\n", result.Email)
-				fmt.Printf("  IP Address: %s\n", result.IpAddress)
-				fmt.Printf("  Password: %s\n", result.Password)
-				fmt.Printf("  Hashed Password: %s\n", result.HashedPassword)
-				fmt.Printf("  Name: %s\n", result.Name)
+
+				// Determine which fields to display
+				if len(options.DisplayFields) > 0 {
+					// Display only specified fields
+					for _, field := range options.DisplayFields {
+						field = strings.ToLower(strings.TrimSpace(field))
+						switch field {
+						case "username":
+							fmt.Printf("  Username: %s\n", result.Username)
+						case "email":
+							fmt.Printf("  Email: %s\n", result.Email)
+						case "ip", "ipaddress", "ip_address":
+							fmt.Printf("  IP Address: %s\n", result.IpAddress)
+						case "password":
+							fmt.Printf("  Password: %s\n", result.Password)
+						case "hash", "hashed_password":
+							fmt.Printf("  Hashed Password: %s\n", result.HashedPassword)
+						case "name":
+							fmt.Printf("  Name: %s\n", result.Name)
+						case "vin":
+							fmt.Printf("  VIN: %s\n", result.Vin)
+						case "license", "license_plate":
+							fmt.Printf("  License Plate: %s\n", result.LicensePlate)
+						case "address":
+							fmt.Printf("  Address: %s\n", result.Address)
+						case "phone":
+							fmt.Printf("  Phone: %s\n", result.Phone)
+						case "social":
+							fmt.Printf("  Social: %s\n", result.Social)
+						case "crypto", "cryptocurrency_address":
+							fmt.Printf("  Crypto Address: %s\n", result.CryptoCurrencyAddress)
+						case "domain", "url":
+							fmt.Printf("  Domain/URL: %s\n", result.Url)
+						}
+					}
+				} else {
+					// Display default fields
+					fmt.Printf("  Username: %s\n", result.Username)
+					fmt.Printf("  Email: %s\n", result.Email)
+					fmt.Printf("  IP Address: %s\n", result.IpAddress)
+					fmt.Printf("  Password: %s\n", result.Password)
+					fmt.Printf("  Hashed Password: %s\n", result.HashedPassword)
+					fmt.Printf("  Name: %s\n", result.Name)
+				}
 				fmt.Println()
 			}
 		}
