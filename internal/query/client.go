@@ -1,6 +1,7 @@
-package dehashed
+package query
 
 import (
+	"Dehash/internal/sqlite"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,10 +10,10 @@ import (
 	"strings"
 )
 
-type DehashClient struct {
+type DehashedClient struct {
 	key      string
 	email    string
-	results  []DehashResult
+	results  []sqlite.Result
 	client   *http.Client
 	query    string
 	params   string
@@ -21,25 +22,25 @@ type DehashClient struct {
 	balance  int
 }
 
-var baseUrl = "https://api.dehashed.com/search"
+var baseUrl = "https://api.dehashed.com/v2/search"
 
-func NewDehashClient(key, email string, printBal bool) *DehashClient {
-	return &DehashClient{key: key, email: email, results: make([]DehashResult, 0), client: &http.Client{}, printBal: printBal}
+func NewDehashedClient(key, email string, printBal bool) *DehashedClient {
+	return &DehashedClient{key: key, email: email, results: make([]sqlite.Result, 0), client: &http.Client{}, printBal: printBal}
 }
 
-func (dc *DehashClient) getKey() string {
+func (dc *DehashedClient) getKey() string {
 	return dc.key
 }
 
-func (dc *DehashClient) getEmail() string {
+func (dc *DehashedClient) getEmail() string {
 	return dc.email
 }
 
-func (dc *DehashClient) GetResults() []DehashResult {
-	return dc.results
+func (dc *DehashedClient) GetResults() sqlite.DehashedResults {
+	return sqlite.DehashedResults{Results: dc.results}
 }
 
-func (dc *DehashClient) buildQuery(params map[string]string) {
+func (dc *DehashedClient) buildQuery(params map[string]string) {
 	urlParams := url.Values{}
 	urlString := baseUrl
 
@@ -60,15 +61,15 @@ func (dc *DehashClient) buildQuery(params map[string]string) {
 	dc.query = urlString
 }
 
-func (dc *DehashClient) setResults(results int) {
+func (dc *DehashedClient) setResults(results int) {
 	dc.query = fmt.Sprintf("%s?query=%s&size=%d", baseUrl, dc.params, results)
 }
 
-func (dc *DehashClient) setPage(page int) {
+func (dc *DehashedClient) setPage(page int) {
 	dc.query = fmt.Sprintf("%s&page=%d", dc.query, page)
 }
 
-func (dc *DehashClient) Do() int {
+func (dc *DehashedClient) Do() int {
 	fmt.Printf("\n\t[*] Performing Request...")
 	req, err := http.NewRequest("GET", dc.query, nil)
 	if err != nil {
@@ -77,6 +78,7 @@ func (dc *DehashClient) Do() int {
 	}
 
 	dc.setAuth(req)
+	req.Header.Add("Dehashed-Api-Key", dc.getKey())
 	req.Header.Add("Accept", "application/json")
 	resp, err := dc.client.Do(req)
 	if err != nil {
@@ -90,7 +92,7 @@ func (dc *DehashClient) Do() int {
 		log.Fatal(dhErr.Error())
 	}
 
-	entries, balance, total := NewDehashResults(resp.Body)
+	entries, balance, total := sqlite.NewDehashedResults(resp.Body)
 	dc.results = append(dc.results, entries...)
 	dc.balance = balance
 	dc.total += total
@@ -100,17 +102,17 @@ func (dc *DehashClient) Do() int {
 	return total
 }
 
-func (dc *DehashClient) setAuth(r *http.Request) {
+func (dc *DehashedClient) setAuth(r *http.Request) {
 	r.SetBasicAuth(dc.email, dc.key)
 }
 
 /*
 Default results per call 100
 Max per call 10,000
-Default records accessible via pagination, 30,000,
-rate limit: 5 requests per second (per ip + credential combo. More creds/ more queries)
+Default MaxRecords accessible via pagination, 30,000,
+rate limit: 5 MaxRequests per second (per ip + credential combo. More creds/ more queries)
 	rate limit response:
-		HTTP Response Code: 400 { "Error 400": "Too many requests were performed in a small amount of time. Please wait a bit before querying the API."}
+		HTTP Response Code: 400 { "Error 400": "Too many MaxRequests were performed in a small amount of time. Please wait a bit before querying the API."}
 	Unauthorized response:
 		HTTP Response Code: 401 { "message": "Invalid API credentials.", "success": false }
 	Method not allowed:
@@ -149,15 +151,15 @@ Queries: Must be a GET
 		Sizing and Pagination
 		DeHashed allows users to query up to 30,000 results and up to 10,000 results per call.
 		Sizing was introduced to help users achieve two things: Either speed up response times, or save on credits..
-		If you don't care for speed, and want to reduce your credit cost (instead of paginating 10x and paying 10 credits), you could increase the &records= parameter, the limit is 10,000. This will significantly slow down your search, however return more results in one call. If you care about speed, you could leave the parameter to default (100) or reduce it further to increase speed.
+		If you don't care for speed, and want to reduce your credit cost (instead of paginating 10x and paying 10 credits), you could increase the &MaxRecords= parameter, the limit is 10,000. This will significantly slow down your search, however return more results in one call. If you care about speed, you could leave the parameter to default (100) or reduce it further to increase speed.
 		Pagination hasn't changed. Simply add the &page= parameter to your search, and indicate the next set of results you wish to access
-		Pagination and Sizing can, and should be used together. The current limit on pagination is 30,000 results. If you set records to 1 (&records=1) you could paginate to the 30,000th page (&page=30000). If you set the records to 10,000(&records=10000) then you can only paginate to the 3rd page (&page=3)
+		Pagination and Sizing can, and should be used together. The current limit on pagination is 30,000 results. If you set MaxRecords to 1 (&MaxRecords=1) you could paginate to the 30,000th page (&page=30000). If you set the MaxRecords to 10,000(&MaxRecords=10000) then you can only paginate to the 3rd page (&page=3)
 
 		Getting Next set of results
 		Response default to 100 results per query, to get the next 100 results, simply add &page=2 to the end of the url. (Note: results are limited to 30,000).
 
 		Calling API, and decreasing/increasing the result amount:
-		Response defaults to 100 results per query, to increase or decrease the amount of results/records per response, simply add &records={amount} to the end of the url. For Example: limiting to just 1 Result per API Response:&records=1 (Fast, however it can cost quite a bit of credits querying a lot). If you don't care for speed, and want to save on credits you can simply append &records=10000 to the end of your request URL. (Note: results are limited to 10,000. You cannot paginate past the 2nd page of results assuming you keep records parameter default (100)).
+		Response defaults to 100 results per query, to increase or decrease the amount of results/MaxRecords per response, simply add &MaxRecords={amount} to the end of the url. For Example: limiting to just 1 Result per API Response:&MaxRecords=1 (Fast, however it can cost quite a bit of credits querying a lot). If you don't care for speed, and want to save on credits you can simply append &MaxRecords=10000 to the end of your request URL. (Note: results are limited to 10,000. You cannot paginate past the 2nd page of results assuming you keep MaxRecords parameter default (100)).
 */
 
 /*
