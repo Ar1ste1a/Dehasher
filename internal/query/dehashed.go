@@ -7,55 +7,37 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"os"
-	"strings"
 )
 
 // Dehasher is a struct for querying the Dehashed API
 type Dehasher struct {
-	options        sqlite.QueryOptions
-	username       string
-	email          string
-	ipAddress      string
-	password       string
-	hashedPassword string
-	name           string
-	query          string
-	page           int
-	params         map[string]string
-	client         *DehashedClient
+	options  sqlite.QueryOptions
+	nextPage int
+	request  *DehashedSearchRequest
+	client   *DehashedClientV2
 }
 
 // NewDehasher creates a new Dehasher
 func NewDehasher(options *sqlite.QueryOptions) *Dehasher {
 	dh := &Dehasher{
-		options: *options,
+		options:  *options,
+		nextPage: options.StartingPage + 1,
 	}
-	dh.escapeReservedCharacters()
-	dh.constructMap()
 	dh.setQueries()
-	if len(dh.params) == 0 {
-		fmt.Println("At least one return type is required")
-		os.Exit(-1)
-	}
-
+	dh.request = NewDehashedSearchRequest(dh.options.StartingPage, dh.options.MaxRecords, dh.options.WildcardMatch, dh.options.RegexMatch, false)
+	dh.buildRequest()
 	return dh
 }
 
-// escapeReservedCharacters escapes reserved characters in the query
-func (dh *Dehasher) escapeReservedCharacters() {
-	reserved := strings.Split("+ - = && || > < ! ( ) { } [ ] ^ \" ~ * ? : \\", " ")
-
-	dh.username = escapeString(dh.options.UsernameQuery, reserved)
-	dh.email = escapeString(dh.options.EmailQuery, reserved)
-	dh.ipAddress = escapeString(dh.options.IpQuery, reserved)
-	dh.password = escapeString(dh.options.PassQuery, reserved)
-	dh.hashedPassword = escapeString(dh.options.HashQuery, reserved)
-	dh.name = escapeString(dh.options.NameQuery, reserved)
+// SetClientCredentials sets the client credentials for the dehasher
+func (dh *Dehasher) SetClientCredentials(key string) {
+	dh.client = NewDehashedClientV2(key)
 }
 
-// SetClientCredentials sets the client credentials for the dehasher
-func (dh *Dehasher) SetClientCredentials(key, email string, printBal bool) {
-	dh.client = NewDehashedClient(key, email, printBal)
+func (dh *Dehasher) getNextPage() int {
+	nextPage := dh.nextPage
+	dh.nextPage += 1
+	return nextPage
 }
 
 // setQueries sets the number of queries to make based on the number of records and requests
@@ -98,78 +80,75 @@ func (dh *Dehasher) setQueries() {
 	}
 
 	dh.options.MaxRequests = numQueries
-	fmt.Printf("Making %d Requests for %d Records (%d Total)", dh.options.MaxRequests, dh.options.MaxRecords, dh.options.MaxRequests*dh.options.MaxRecords)
+	fmt.Printf("Making %d Requests for %d Records (%d Total)\n", dh.options.MaxRequests, dh.options.MaxRecords, dh.options.MaxRequests*dh.options.MaxRecords)
 }
 
 // Start starts the querying process
 func (dh *Dehasher) Start() {
-	dh.client.buildQuery(dh.params)
-	page := 1
-	offset := 0
-	foundNum := 0
+	fmt.Println("[*] Querying Dehashed API...")
 	for i := 0; i < dh.options.MaxRequests; i++ {
-		dh.client.setResults(dh.options.MaxRecords)
-		dh.client.setPage(page)
-		found := dh.client.Do()
+		fmt.Printf("\n\t[*] Performing Request...")
+		count, err := dh.client.Search(*dh.request)
+		if err != nil {
+			fmt.Printf("[!] Error performing request: %v", err)
+			os.Exit(-1)
+		}
 
-		if found-offset < dh.options.MaxRecords {
-			fmt.Printf("\n\t\t[+] Retrieved %d Records", found-offset)
+		if count < dh.options.MaxRecords {
+			fmt.Printf("\n\t\t[+] Retrieved %d Records", count)
 			fmt.Printf("\n[-] Not Enough Entries, ending queries")
 			break
 		} else {
-			if found-offset > dh.options.MaxRecords {
-				foundNum = dh.options.MaxRecords
-			} else {
-				foundNum = found - offset
-			}
-			fmt.Printf("\n\t\t[*] Retrieved %d Records", foundNum)
-			offset += dh.options.MaxRecords
-			page += 1
+			fmt.Printf("\n\t\t[+] Retrieved %d Records", dh.options.MaxRecords)
 		}
+
+		dh.request.Page = dh.getNextPage()
 	}
 
 	dh.parseResults()
 }
 
-// buildQuery builds the query string
-func (dh *Dehasher) buildQuery() {
-	for key, value := range dh.params {
-		println(key, value)
+// buildRequest constructs the query map
+func (dh *Dehasher) buildRequest() {
+	if len(dh.options.UsernameQuery) > 0 {
+		dh.request.AddUsernameQuery(dh.options.UsernameQuery)
 	}
-}
-
-// constructMap constructs the query map
-func (dh *Dehasher) constructMap() {
-	urlParams := map[string]string{}
-
-	if len(dh.username) > 0 {
-		urlParams["username"] = dh.username
+	if len(dh.options.EmailQuery) > 0 {
+		dh.request.AddEmailQuery(dh.options.EmailQuery)
 	}
-	if len(dh.email) > 0 {
-		urlParams["email"] = dh.email
+	if len(dh.options.IpQuery) > 0 {
+		dh.request.AddIpAddressQuery(dh.options.IpQuery)
 	}
-	if len(dh.ipAddress) > 0 {
-		urlParams["ip_address"] = dh.ipAddress
+	if len(dh.options.HashQuery) > 0 {
+		dh.request.AddHashedPasswordQuery(dh.options.HashQuery)
 	}
-	if len(dh.hashedPassword) > 0 {
-		urlParams["hashed_password"] = dh.hashedPassword
+	if len(dh.options.PassQuery) > 0 {
+		dh.request.AddPasswordQuery(dh.options.PassQuery)
 	}
-	if len(dh.password) > 0 {
-		urlParams["password"] = dh.password
+	if len(dh.options.NameQuery) > 0 {
+		dh.request.AddNameQuery(dh.options.NameQuery)
 	}
-	if len(dh.name) > 0 {
-		urlParams["name"] = dh.name
+	if len(dh.options.DomainQuery) > 0 {
+		dh.request.AddDomainQuery(dh.options.DomainQuery)
 	}
-
-	dh.params = urlParams
-}
-
-// escapeString escapes reserved characters in the query
-func escapeString(input string, reserved []string) string {
-	for _, char := range reserved {
-		input = strings.Replace(input, char, "\\"+char, -1)
+	if len(dh.options.VinQuery) > 0 {
+		dh.request.AddVinQuery(dh.options.VinQuery)
 	}
-	return input
+	if len(dh.options.LicensePlateQuery) > 0 {
+		dh.request.AddLicensePlateQuery(dh.options.LicensePlateQuery)
+	}
+	if len(dh.options.AddressQuery) > 0 {
+		dh.request.AddAddressQuery(dh.options.AddressQuery)
+	}
+	if len(dh.options.PhoneQuery) > 0 {
+		dh.request.AddPhoneQuery(dh.options.PhoneQuery)
+	}
+	if len(dh.options.SocialQuery) > 0 {
+		dh.request.AddSocialQuery(dh.options.SocialQuery)
+	}
+	if len(dh.options.CryptoAddressQuery) > 0 {
+		dh.request.AddCryptoAddressQuery(dh.options.CryptoAddressQuery)
+	}
 }
 
 // parseResults parses the results and writes them to a file

@@ -7,14 +7,21 @@ import (
 )
 
 type DBOptions struct {
-	Username       string
-	Email          string
-	IPAddress      string
-	Password       string
-	HashedPassword string
-	Name           string
-	Limit          int
-	ExactMatch     bool
+	Username              string
+	Email                 string
+	IPAddress             string
+	Password              string
+	HashedPassword        string
+	Name                  string
+	Vin                   string
+	LicensePlate          string
+	Address               string
+	Phone                 string
+	Social                string
+	CryptoCurrencyAddress string
+	Domain                string
+	Limit                 int
+	ExactMatch            bool
 }
 
 func NewDBOptions() *DBOptions {
@@ -28,6 +35,7 @@ type QueryOptions struct {
 	gorm.Model
 	MaxRecords         int            `json:"max_records"`
 	MaxRequests        int            `json:"max_requests"`
+	StartingPage       int            `json:"starting_page"`
 	OutputFormat       files.FileType `json:"output_format"`
 	OutputFile         string         `json:"output_file"`
 	RegexMatch         bool           `json:"regex_match"`
@@ -49,10 +57,11 @@ type QueryOptions struct {
 	CredsOnly          bool           `json:"creds_only"`
 }
 
-func NewQueryOptions(maxRecords, maxRequests int, outputFormat, outputFile, usernameQuery, emailQuery, ipQuery, passQuery, hashQuery, nameQuery, domainQuery, vinQuery, licensePlateQuery, addressQuery, phoneQuery, socialQuery, cryptoAddressQuery string, regexMatch, wildcardMatch, printBalance, credsOnly bool) *QueryOptions {
+func NewQueryOptions(maxRecords, maxRequests, startingPage int, outputFormat, outputFile, usernameQuery, emailQuery, ipQuery, passQuery, hashQuery, nameQuery, domainQuery, vinQuery, licensePlateQuery, addressQuery, phoneQuery, socialQuery, cryptoAddressQuery string, regexMatch, wildcardMatch, printBalance, credsOnly bool) *QueryOptions {
 	return &QueryOptions{
 		MaxRecords:         maxRecords,
 		MaxRequests:        maxRequests,
+		StartingPage:       startingPage,
 		OutputFormat:       files.GetFileType(outputFormat),
 		OutputFile:         outputFile,
 		PrintBalance:       printBalance,

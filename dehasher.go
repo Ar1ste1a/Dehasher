@@ -81,6 +81,8 @@ func main() {
 			zap.String("message", "failed to initialize database"),
 			zap.Error(err),
 		)
+		fmt.Printf("[!] Error initializing database: %v", err)
+		os.Exit(1)
 	}
 
 	zap.L().Info("starting_badger")

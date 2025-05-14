@@ -72,6 +72,34 @@ func applyFilters(query *gorm.DB, options *DBOptions) *gorm.DB {
 		query = applyFilter("name", options.Name)
 	}
 
+	if options.Vin != "" {
+		query = applyFilter("vin", options.Vin)
+	}
+
+	if options.LicensePlate != "" {
+		query = applyFilter("license_plate", options.LicensePlate)
+	}
+
+	if options.Address != "" {
+		query = applyFilter("address", options.Address)
+	}
+
+	if options.Phone != "" {
+		query = applyFilter("phone", options.Phone)
+	}
+
+	if options.Social != "" {
+		query = applyFilter("social", options.Social)
+	}
+
+	if options.CryptoCurrencyAddress != "" {
+		query = applyFilter("cryptocurrency_address", options.CryptoCurrencyAddress)
+	}
+
+	if options.Domain != "" {
+		query = applyFilter("url", options.Domain)
+	}
+
 	return query
 }
 

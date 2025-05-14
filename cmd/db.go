@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"strings"
 )
 
 var (
@@ -15,15 +16,22 @@ var (
 	dbPath string
 
 	// DB query command flags
-	usernameDBQuery string
-	emailDBQuery    string
-	ipDBQuery       string
-	passwordDBQuery string
-	hashDBQuery     string
-	nameDBQuery     string
-	limitResults    int
-	exactMatchQuery bool
-	outputFormatDB  string
+	usernameDBQuery              string
+	emailDBQuery                 string
+	ipDBQuery                    string
+	passwordDBQuery              string
+	hashDBQuery                  string
+	nameDBQuery                  string
+	vinDBQuery                   string
+	licensePlateDBQuery          string
+	addressDBQuery               string
+	phoneDBQuery                 string
+	socialDBQuery                string
+	cryptoCurrencyAddressDBQuery string
+	domainDBQuery                string
+	limitResultsDB               int
+	exactMatchDBQuery            bool
+	outputFormatDB               string
 
 	// DB command
 	dbCmd = &cobra.Command{
@@ -39,7 +47,7 @@ func init() {
 	dbCmd.AddCommand(dbQueryCmd)
 
 	// Add flags specific to db command
-	dbCmd.PersistentFlags().StringVarP(&dbPath, "db-path", "d", "", "Path to database (default: ~/.local/share/Dehasher/dehashed.db)")
+	dbCmd.PersistentFlags().StringVarP(&dbPath, "db-path", "D", "", "Path to database (default: ~/.local/share/Dehasher/dehashed.db)")
 
 	// Add flags specific to db query command
 	dbQueryCmd.Flags().StringVarP(&usernameDBQuery, "username", "u", "", "Filter by username")
@@ -48,8 +56,15 @@ func init() {
 	dbQueryCmd.Flags().StringVarP(&passwordDBQuery, "password", "p", "", "Filter by password")
 	dbQueryCmd.Flags().StringVarP(&hashDBQuery, "hash", "H", "", "Filter by hashed password")
 	dbQueryCmd.Flags().StringVarP(&nameDBQuery, "name", "n", "", "Filter by name")
-	dbQueryCmd.Flags().IntVarP(&limitResults, "limit", "l", 100, "Limit number of results")
-	dbQueryCmd.Flags().BoolVarP(&exactMatchQuery, "exact", "x", false, "Use exact matching instead of partial matching")
+	dbQueryCmd.Flags().StringVarP(&vinDBQuery, "vin", "v", "", "Filter by VIN")
+	dbQueryCmd.Flags().StringVarP(&licensePlateDBQuery, "license", "L", "", "Filter by license plate")
+	dbQueryCmd.Flags().StringVarP(&addressDBQuery, "address", "a", "", "Filter by address")
+	dbQueryCmd.Flags().StringVarP(&phoneDBQuery, "phone", "P", "", "Filter by phone number")
+	dbQueryCmd.Flags().StringVarP(&socialDBQuery, "social", "s", "", "Filter by social media handle")
+	dbQueryCmd.Flags().StringVarP(&cryptoCurrencyAddressDBQuery, "crypto", "c", "", "Filter by cryptocurrency address")
+	dbQueryCmd.Flags().StringVarP(&domainDBQuery, "domain", "d", "", "Filter by domain/URL")
+	dbQueryCmd.Flags().IntVarP(&limitResultsDB, "limit", "l", 100, "Limit number of results")
+	dbQueryCmd.Flags().BoolVarP(&exactMatchDBQuery, "exact", "x", false, "Use exact matching instead of partial matching")
 	dbQueryCmd.Flags().StringVarP(&outputFormatDB, "format", "f", "table", "Output format (json, table, simple)")
 }
 
@@ -67,8 +82,8 @@ var dbExportCmd = &cobra.Command{
 			Password:       passwordDBQuery,
 			HashedPassword: hashDBQuery,
 			Name:           nameDBQuery,
-			Limit:          limitResults,
-			ExactMatch:     exactMatchQuery,
+			Limit:          limitResultsDB,
+			ExactMatch:     exactMatchDBQuery,
 		}
 
 		// Check if at least one search parameter is provided
@@ -119,14 +134,21 @@ var dbQueryCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create DBOptions with the provided parameters
 		options := &sqlite.DBOptions{
-			Username:       usernameDBQuery,
-			Email:          emailDBQuery,
-			IPAddress:      ipDBQuery,
-			Password:       passwordDBQuery,
-			HashedPassword: hashDBQuery,
-			Name:           nameDBQuery,
-			Limit:          limitResults,
-			ExactMatch:     exactMatchQuery,
+			Username:              usernameDBQuery,
+			Email:                 emailDBQuery,
+			IPAddress:             ipDBQuery,
+			Password:              passwordDBQuery,
+			HashedPassword:        hashDBQuery,
+			Name:                  nameDBQuery,
+			Vin:                   vinDBQuery,
+			LicensePlate:          licensePlateDBQuery,
+			Address:               addressDBQuery,
+			Phone:                 phoneDBQuery,
+			Social:                socialDBQuery,
+			CryptoCurrencyAddress: cryptoCurrencyAddressDBQuery,
+			Domain:                domainDBQuery,
+			Limit:                 limitResultsDB,
+			ExactMatch:            exactMatchDBQuery,
 		}
 
 		// Check if at least one search parameter is provided
@@ -205,4 +227,8 @@ func truncate(s string, length int) string {
 		return s
 	}
 	return s[:length-3] + "..."
+}
+
+func arrayToString(a []string) string {
+	return strings.Join(a, ", ")
 }

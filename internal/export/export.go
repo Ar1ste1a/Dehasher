@@ -60,7 +60,7 @@ func WriteToFile(results sqlite.DehashedResults, outputFile string, fileType fil
 		for _, r := range result {
 			out := fmt.Sprintf(
 				"Id: %s\nEmail: %s\nIpAddress: %s\nUsername: %s\nPassword: %s\nHashedPassword: %s\nHashType: %s\nName: %s\nVin: %s\nAddress: %s\nPhone: %s\nDatabaseName: %s\n\n",
-				r.Id, r.Email, r.IpAddress, r.Username, r.Password, r.HashedPassword, r.HashType, r.Name, r.Vin, r.Address, r.Phone, r.DatabaseName)
+				r.DehashedId, r.Email, r.IpAddress, r.Username, r.Password, r.HashedPassword, r.HashType, r.Name, r.Vin, r.Address, r.Phone, r.DatabaseName)
 			outStrings = append(outStrings, out)
 		}
 		data = []byte(strings.Join(outStrings, ""))

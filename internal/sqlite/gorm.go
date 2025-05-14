@@ -3,6 +3,7 @@ package sqlite
 import (
 	"fmt"
 	"go.uber.org/zap"
+	"gorm.io/gorm/clause"
 	"os"
 	"path/filepath"
 
@@ -54,6 +55,67 @@ func GetDB() *gorm.DB {
 }
 
 func StoreResults(results DehashedResults) error {
+	if len(results.Results) == 0 {
+		return nil
+	}
+
+	zap.L().Info("Storing results", zap.Int("count", len(results.Results)))
 	db := GetDB()
-	return db.Create(&results).Error
+
+	// Use batch insert with conflict handling
+	const batchSize = 100
+	var lastErr error
+
+	// Extract the slice of results
+	resultSlice := results.Results
+
+	for i := 0; i < len(resultSlice); i += batchSize {
+		end := i + batchSize
+		if end > len(resultSlice) {
+			end = len(resultSlice)
+		}
+
+		batch := resultSlice[i:end]
+		// Use Clauses with OnConflict DoNothing to skip conflicts
+		err := db.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(&batch, batchSize).Error
+		if err != nil {
+			zap.L().Warn("Error storing some results", zap.Error(err))
+			lastErr = err
+			// Continue with next batch despite error
+		}
+	}
+
+	return lastErr
+}
+
+func StoreCreds(creds []Creds) error {
+	if len(creds) == 0 {
+		return nil
+	}
+
+	zap.L().Info("Storing credentials", zap.Int("count", len(creds)))
+	db := GetDB()
+
+	// Use batch insert with conflict handling
+	// This will insert records in batches and continue even if some fail
+	const batchSize = 100
+	var lastErr error
+
+	for i := 0; i < len(creds); i += batchSize {
+		end := i + batchSize
+		if end > len(creds) {
+			end = len(creds)
+		}
+
+		batch := creds[i:end]
+		// Use CreateInBatches with OnConflict clause to skip conflicts
+		err := db.CreateInBatches(&batch, batchSize).Error
+		if err != nil {
+			zap.L().Warn("Error storing some credentials", zap.Error(err))
+			lastErr = err
+			// Continue with next batch despite error
+		}
+	}
+
+	return lastErr
 }

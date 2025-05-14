@@ -12,10 +12,13 @@ var (
 	// Query command flags
 	maxRecords                 int
 	maxRequests                int
-	outputFormat               string
-	outputFile                 string
+	startingPage               int
+	credsOnly                  bool
+	printBalance               bool
 	regexMatch                 bool
 	wildcardMatch              bool
+	outputFormat               string
+	outputFile                 string
 	usernameQuery              string
 	emailQuery                 string
 	ipQuery                    string
@@ -29,8 +32,6 @@ var (
 	phoneQuery                 string
 	socialQuery                string
 	cryptoCurrencyAddressQuery string
-	credsOnly                  bool
-	printBalance               bool
 
 	// Query command
 	queryCmd = &cobra.Command{
@@ -60,6 +61,7 @@ var (
 			queryOptions := sqlite.NewQueryOptions(
 				maxRecords,
 				maxRequests,
+				startingPage,
 				outputFormat,
 				outputFile,
 				usernameQuery,
@@ -84,13 +86,10 @@ var (
 			// Create new Dehasher
 			dehasher := query.NewDehasher(queryOptions)
 			dehasher.SetClientCredentials(
-				apiKey,
-				apiEmail,
-				printBalance,
+				key,
 			)
 
 			// Start querying
-			fmt.Println("[*] Querying Dehashed API...")
 			dehasher.Start()
 			fmt.Println("\n[*] Completing Process")
 		},
@@ -101,9 +100,10 @@ func init() {
 	// Add flags specific to query command
 	queryCmd.Flags().IntVarP(&maxRecords, "max-records", "m", 30000, "Maximum amount of records to return")
 	queryCmd.Flags().IntVarP(&maxRequests, "max-requests", "r", -1, "Maximum number of requests to make")
-	queryCmd.Flags().BoolVarP(&printBalance, "print-balance", "B", false, "Print remaining balance after requests")
-	queryCmd.Flags().BoolVarP(&regexMatch, "regex-match", "R", false, "Use regex matching on fields (u=username, e=email, i=ip, p=password, q=hash, n=name)")
-	queryCmd.Flags().BoolVarP(&wildcardMatch, "wildcard-match", "W", false, "Use wildcard matching on fields (u=username, e=email, i=ip, p=password, q=hash, n=name)")
+	queryCmd.Flags().IntVarP(&startingPage, "starting-page", "s", 1, "Starting page for requests")
+	queryCmd.Flags().BoolVarP(&printBalance, "print-balance", "b", false, "Print remaining balance after requests")
+	queryCmd.Flags().BoolVarP(&regexMatch, "regex-match", "R", false, "Use regex matching on query fields")
+	queryCmd.Flags().BoolVarP(&wildcardMatch, "wildcard-match", "W", false, "Use wildcard matching on query fields (Use ? to replace a single character, and * for multiple characters)")
 	queryCmd.Flags().BoolVarP(&credsOnly, "creds-only", "C", false, "Return credentials only")
 	queryCmd.Flags().StringVarP(&outputFormat, "format", "f", "json", "Output format (json, yaml, xml, txt)")
 	queryCmd.Flags().StringVarP(&outputFile, "output", "o", "query", "File to output results to including extension")
@@ -112,6 +112,12 @@ func init() {
 	queryCmd.Flags().StringVarP(&ipQuery, "ip", "I", "", "IP address query")
 	queryCmd.Flags().StringVarP(&domainQuery, "domain", "D", "", "Domain query")
 	queryCmd.Flags().StringVarP(&passwordQuery, "password", "P", "", "Password query")
+	queryCmd.Flags().StringVarP(&vinQuery, "vin", "V", "", "VIN query")
+	queryCmd.Flags().StringVarP(&licensePlateQuery, "license", "L", "", "License plate query")
+	queryCmd.Flags().StringVarP(&addressQuery, "address", "A", "", "Address query")
+	queryCmd.Flags().StringVarP(&phoneQuery, "phone", "M", "", "Phone query")
+	queryCmd.Flags().StringVarP(&socialQuery, "social", "S", "", "Social query")
+	queryCmd.Flags().StringVarP(&cryptoCurrencyAddressQuery, "crypto", "B", "", "Crypto currency address query")
 	queryCmd.Flags().StringVarP(&hashQuery, "hash", "Q", "", "Hashed password query")
 	queryCmd.Flags().StringVarP(&nameQuery, "name", "N", "", "Name query")
 

@@ -18,7 +18,7 @@ var (
 		Use:   "dehasher",
 		Short: `Dehasher is a cli tool for querying query.`,
 		Long: fmt.Sprintf(
-			"%s\n%s\n%s",
+			"%s\n%s",
 			`
  ______   _______           _______  _______           _______  _______ 
 (  __  \ (  ____ \|\     /|(  ___  )(  ____ \|\     /|(  ____ \(  ____ )
@@ -28,7 +28,7 @@ var (
 | |   ) || (      | (   ) || (   ) |      ) || (   ) || (      | (\ (   
 | (__/  )| (____/\| )   ( || )   ( |/\____) || )   ( || (____/\| ) \ \__
 (______/ (_______/|/     \||/     \|\_______)|/     \|(_______/|/   \__/
-                                                                        
+An Ar1ste1a Project                                                                        
 `,
 			`––•–√\/––√\/––•––––•–√\/––√\/––•––––•–√\/––√\/––•––
   Dehasher can query the query API for:
@@ -38,6 +38,12 @@ var (
   - Hashes
   - IP Addresses
   - Names
+  - VINs
+  - License Plates
+  - Addresses
+  - Phones
+  - Social Media
+  - Crypto Currency Addresses
   Dehasher supports:
   - Regex Matching
   - Exact Matching
